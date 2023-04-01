@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools==63.4.1"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lean4_agent"
+version = "0.0.1"
+authors = [
+  { name="Zhangir Azerbayev", email="zhangir.azerbayev@yale.edu" },
+  { name="Jesse Michael Han", email="jessemhan@proton.me" }
+]
+description = ""
+readme = "README.md"
+license = { file="LICENSE" }
+requires-python = ">=3.8"
+dependencies = [
+             "pspawn",
+             "requests",
+             "dacite",
+             "asyncio",
+             "aiohttp",
+             "pdfminer.six",
+             "tiktoken",
+             "blobfile",
+]
