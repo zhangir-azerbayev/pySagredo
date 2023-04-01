@@ -5,7 +5,7 @@ import argparse
 class ProofSearch: 
     def __init__(self, path_to_repl):
         self.proc = pexpect.spawn("lake env lean --run REPL/Main.lean", 
-                cwd=path_to_repl)
+                cwd=path_to_repl, encoding='utf-8')
         self.count = 0 
         
     def run_code(self, code):
@@ -15,7 +15,7 @@ class ProofSearch:
         self.proc.expect_exact("\r\n")
         try: 
             index = self.proc.expect("env\": \d+\}", timeout=20)
-            output = self.proc.before.decode()
+            output = self.proc.before
             output += f"env\": {self.count}" + "}"
             print(output)
             return json.loads(output)

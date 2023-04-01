@@ -41,6 +41,53 @@ example (p q : Prop) : p ∨ q → q ∨ p := by
   | inr hq => apply Or.inl; exact hq\
 """
 
+PROOF_INSTRUCTION = """\
+1. Please write out a plan for proceeding, in English (with LaTeX).
+2. Please add the next tactic step to the proof. Include the new version of your (possibly incomplete) proof in a lean code block. Make sure the code block is self-contained and runs. Do not add more than one new tactic step. Include a `sorry` where the remaining tactics should go."""
+
+def f2f_initial_prompt(code): 
+    return f"""\
+I am going to show you an incomplete proof and the accompanying goal state. I will ask you to complete the proof step by step, adding one tactic step in each response. 
+
+Here is my Lean code so far: 
+```lean
+{code}
+```
+{PROOF_INSTRUCTION}"""
+
+def autoformalize_proof_initial_prompt(nl_statement, nl_proof, code):
+    return f"""\
+I am going to show you a natural language proof of a theorem and a corresponding formal theorem statement in Lean 4. Your job will be to write a formal proof of the formal theorem statement, using the natural language proof as a hint.
+
+Below is the Lean code I would like you to complete. The natural language theorem statement and natural language proof are provided in the docstring.
+```lean
+/--
+{nl_statement}
+
+{nl_proof}
+-/
+{code}
+```
+{PROOF_INSTRUCTION}"""
+
+def prove_unsolved_goals_prompt(goal_state):
+    return f"""\
+Here is the new goal state:
+```lean
+{goal_state}
+```
+{PROOF_INSTRUCTION}"""
+
+
+def prove_error_prompt(error, line, col): 
+    return f"""\
+There is an error on line {line} col {col}
+```
+{error}
+```
+Please describe how you are going to fix the error. Change your code to fix the error, but do not add any new tactic steps.
+"""
+
 class ChatMessage(BaseModel):
     role: str
     content: str
@@ -48,7 +95,7 @@ class ChatMessage(BaseModel):
 class ChatState(BaseModel):
     messages: List[ChatMessage]
 
-def generate_message(chat_state: ChatState, temperature=1.0, max_tokens=2048, model: str = "gpt-3.5-turbo") -> str:
+def generate_message(chat_state: ChatState, temperature=0, max_tokens=2048, model: str = "gpt-4") -> str:
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {os.environ.get('OPENAI_API_KEY')}",
@@ -61,7 +108,14 @@ def generate_message(chat_state: ChatState, temperature=1.0, max_tokens=2048, mo
         temperature=temperature,
     )
     r = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
+    print(r)
     return r.json()["choices"][0]["message"]["content"]
+
+def complete_chat(chat_state: ChatState, **kwargs): 
+    print("waiting on api...")
+    response_text = generate_message(chat_state, **kwargs)
+    print(f"GOT RESPONSE:\n{response_text}")
+    return ChatState(messages=[*chat_state.messages, ChatMessage(role="assistant", content=response_text)])
 
 def generate_message_lean_single(input: str):
     return generate_message(ChatState(messages=[ChatMessage(role="system", content=SYSTEM_MESSAGE), ChatMessage(role="user", content=input)]))
