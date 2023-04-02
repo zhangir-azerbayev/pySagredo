@@ -27,7 +27,7 @@ def sorries_goals_errors_of_lean_state(lean_state):
     errors = [m for m in lean_state["messages"] if "unsolved goals" not in m["data"]]
     return sorries, goals, errors
 
-def chat_prove_kernel(chat_state: ChatState, sorries, goals, errors): 
+def chat_prove_kernel(lean: ProofSearch, chat_state: ChatState, sorries, goals, errors): 
         if goals and not errors:
             goal_state = "\n\n".join(goals)
             prompt = prove_unsolved_goals_prompt(goal_state)
@@ -45,7 +45,9 @@ def chat_prove_kernel(chat_state: ChatState, sorries, goals, errors):
 
         code = code_of_chat_state(chat_state).strip()
 
-        lean_state = lean.run_code(code)
+        print(f"CODE TO EXECUTE:\n{code}")
+
+        lean_state = lean.run_code(code, verbose=True)
         sorries, goals, errors = sorries_goals_errors_of_lean_state(lean_state)
 
         return chat_state, sorries, goals, errors, lean_state
@@ -56,7 +58,6 @@ def f2f_prove(source: str, max_calls=6):
     and a theorem statement followed by `:= by`. 
     """
     replpath = os.environ.get("PATH_TO_REPL")
-    lean = ProofSearch(replpath)
     lean_states = []
 
     chat_state = ChatState(
@@ -65,17 +66,23 @@ def f2f_prove(source: str, max_calls=6):
             ChatMessage(role="user", content=f2f_initial_prompt(source)),
         ]
     )
+
+    lean = ProofSearch(replpath)
+
     chat_state = complete_chat(chat_state)
     code = code_of_chat_state(chat_state).strip()
 
-    lean_state = lean.run_code(code)
+    lean_state = lean.run_code(code, verbose=True)
     lean_states.append(lean_state)
 
     sorries, goals, errors = sorries_goals_errors_of_lean_state(lean_state)
     
     if sorries or goals or errors:
         for num_calls in range(1, max_calls):
-            chat_state, sorries, goals, errors, lean_state = chat_prove_kernel(chat_state, sorries, goals, errors)
+            del lean 
+            lean = ProofSearch(replpath)
+
+            chat_state, sorries, goals, errors, lean_state = chat_prove_kernel(lean, chat_state, sorries, goals, errors)
             lean_states.append(lean_state)
             if not (sorries or goals or errors):
                 break
