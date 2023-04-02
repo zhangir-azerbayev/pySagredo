@@ -43,7 +43,7 @@ example (p q : Prop) : p ∨ q → q ∨ p := by
 
 PROOF_INSTRUCTION = """\
 1. Please write out a plan for proceeding, in English (with LaTeX).
-2. Please add the next tactic step to the proof. Include the new version of your (possibly incomplete) proof in a lean code block. Make sure the code block is self-contained and runs. Do not add more than one new tactic step. Include a `sorry` where the remaining tactics should go."""
+2. Please add the next tactic step to the proof. Include the new version of your (possibly incomplete) proof in a lean code block. Make sure the code block is self-contained and runs. Do not add more than one new tactic step."""
 
 def f2f_initial_prompt(code): 
     return f"""\
@@ -86,6 +86,11 @@ There is an error on line {line} col {col}
 {error}
 ```
 Please describe how you are going to fix the error. Change your code to fix the error, but do not add any new tactic steps.
+"""
+
+def sorry_prompt():
+    return """\
+There is a sorry in your code. Please do not write any code that contains sorries. Instead, finish typing at the location where you want to see the goal state. Remove the sorry, but do not add any new tactic steps.\
 """
 
 class ChatMessage(BaseModel):
