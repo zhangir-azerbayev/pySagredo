@@ -55,10 +55,10 @@ def chat_prove_kernel(lean: ProofSearch, chat_state: ChatState, sorries, goals, 
 
         return chat_state, sorries, goals, errors, lean_state
 
-def f2f_prove(source: str, max_calls=6, max_tokens=8192):
+def prove_with_initial_prompt(initial_prompt: str, max_calls=6, max_tokens=8192):
     """
-    `source` is an incomplete Lean proof, which consists of imports/namespace, 
-    and a theorem statement followed by `:= by`. 
+    `initial_prompt` should ask the model to generate a response contained within
+    a lean code block that ends in `:= by`.
     """
     replpath = os.environ.get("PATH_TO_REPL")
     lean_states = []
@@ -67,7 +67,7 @@ def f2f_prove(source: str, max_calls=6, max_tokens=8192):
     chat_state = ChatState(
         messages=[
             ChatMessage(role="system", content=SYSTEM_MESSAGE),
-            ChatMessage(role="user", content=f2f_initial_prompt(source)),
+            ChatMessage(role="user", content=initial_prompt),
         ]
     )
 
@@ -99,5 +99,10 @@ def f2f_prove(source: str, max_calls=6, max_tokens=8192):
         stop_reason = "success"
         
     summary = {"code": code, "chat": chat_state, "lean_states": lean_states, "stop_reason": stop_reason}
+    return summary
 
-    return summary 
+def f2f_prove(code: str, **kwargs): 
+    return prove_with_initial_prompt(f2f_initial_prompt(code), **kwargs)
+
+def autoformalize_statement_and_proof(nl_statement: str, nl_proof: str, code: str, **kwargs): 
+    return prove_with_initial_prompt(autoformalize_statement_and_proof_initial_prompt(nl_statement, nl_proof, code), **kwargs)

@@ -45,7 +45,7 @@ example (p q : Prop) : p ∨ q → q ∨ p := by
 """
 
 PROOF_INSTRUCTION = """\
-1. Please write out a plan for proceeding, in English (with LaTeX).
+1. Please write out a plan for proceeding with the proof. Write your plan in English (with LaTeX).
 2. Please add the next tactic step to the proof. Include the new version of your (possibly incomplete) proof in a lean code block. Make sure the code block is self-contained and runs. Do not add more than one new tactic step."""
 
 def f2f_initial_prompt(code): 
@@ -62,16 +62,35 @@ def autoformalize_proof_initial_prompt(nl_statement, nl_proof, code):
     return f"""\
 I am going to show you a natural language proof of a theorem and a corresponding formal theorem statement in Lean 4. Your job will be to write a formal proof of the formal theorem statement, using the natural language proof as a hint.
 
-Below is the Lean code I would like you to complete. The natural language theorem statement and natural language proof are provided in the docstring.
-```lean
-/--
-{nl_statement}
-
+Here are the natural language theorem and proof:
+\\begin{theorem}
+    {nl_statement}
+\\end{theorem}
 {nl_proof}
--/
+
+Below is the Lean code I would like you to complete.
+```lean
 {code}
 ```
 {PROOF_INSTRUCTION}"""
+
+def autoformalize_statement_and_proof_initial_prompt(nl_statement, nl_proof, code): 
+    return f"""\
+I am going to show you a natural language theorem statement and natural language proof of that theorem. Your job will be to formalize the statement of the theorem in Lean 4 and formally prove the statement. 
+
+Here are the natural language theorem and proof:
+\\begin{theorem}
+    {nl_statement}
+\\end{theorem}
+{nl_proof}
+
+Here is the code template for your formalization. 
+```lean
+{code}
+```
+1. Please write out a plan for the autoformalization. Write your plan in English (with LaTeX).
+2. Autoformalize the statement of the theorem only, i.e, remove the `sorry` in the type signature of the theorem. Do not start proving the theorem yet. Include the new version of your code in a lean code block. Make sure your code is self-contained and runs.
+"""
 
 def prove_unsolved_goals_prompt(goal_state):
     return f"""\
