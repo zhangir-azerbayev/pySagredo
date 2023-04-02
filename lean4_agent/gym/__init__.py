@@ -1,40 +1,58 @@
 import pexpect
 import json
 import argparse
+import os
 
-class ProofSearch: 
+
+class ProofSearch:
     def __init__(self, path_to_repl):
-        self.proc = pexpect.spawn("lake env lean --run REPL/Main.lean", 
-                cwd=path_to_repl, encoding='utf-8')
-        self.count = 0 
-        
-    def run_code(self, code):
-        self.proc.sendline(code)
-        self.proc.expect_exact(code+"\r\n")
+        self.proc = pexpect.spawn(
+            "lake env lean --run REPL/Main.lean", cwd=path_to_repl, encoding="utf-8"
+        )
+
+    def run_code(self, code, env=None, verbose=False):
+        if env:
+            command = (
+                '{ "cmd" : "' + repr(code)[1:-1] + f'", "env" : {env}' + " }"
+            )  # [1:-1] removes single quotes
+        else:
+            command = (
+                '{ "cmd" : "' + repr(code)[1:-1] + '" }'
+            )  # [1:-1] removes single quotes
+
+        if verbose:
+            print(command)
+        self.proc.sendline(command)
+        self.proc.expect_exact(command + "\r\n")
         self.proc.sendline()
         self.proc.expect_exact("\r\n")
-        try: 
-            index = self.proc.expect("env\": \d+\}", timeout=20)
-            output = self.proc.before
-            output += f"env\": {self.count}" + "}"
-            print(output)
+        try:
+            index = self.proc.expect('env": \d+\}', timeout=20)
+            output = self.proc.before + self.proc.match.group()
+            if verbose: 
+                print(output)
             return json.loads(output)
         except pexpect.exceptions.TIMEOUT:
             print("FAILED DUE TO TIMEOUT")
 
+
 def main():
     """For testing purposes"""
-    parser = argparse.ArgumentParser(description="main() for testing purposes only")
 
-    parser.add_argument("--replpath", type=str, required=True, 
-            help="path to leanprover-community/repl")
+    proofsearch = ProofSearch("/home/zhangir/projects/repl")
 
-    args = parser.parse_args()
+    # should return empty sorries and goals
+    proofsearch.run_code("import Mathlib.Data.List.Basic\ndef f := 2", verbose=True)
+    # should return goal state
+    proofsearch.run_code("example : 2 = 2 := by", verbose=True)
+    # should return error
+    proofsearch.run_code("example : 2 = 3 := rfl", verbose=True)
 
-    proofsearch = ProofSearch(args.replpath)
-    proofsearch.run_code("{ \"cmd\" : \"import Mathlib.Data.List.Basic\\ndef f := 2\" }")
-    proofsearch.run_code("{ \"cmd\" : \"example : 2 = 3 := by\" }")
-    proofsearch.run_code("{ \"cmd\" : \"example : 2 = 3 := rfl\" }")
+    # should return goal state
+    feedback = proofsearch.run_code("def f := 37", verbose=True)
+    env = feedback["env"]
+    proofsearch.run_code("#check (rfl: f = 37)", env=env, verbose=True)
 
-if __name__=="__main__":
+
+if __name__ == "__main__":
     main()
