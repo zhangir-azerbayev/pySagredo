@@ -38,8 +38,11 @@ class ProofSearch:
 
 def main():
     """For testing purposes"""
+    path = os.environ.get("PATH_TO_LEAN_REPL")
 
-    proofsearch = ProofSearch("/home/zhangir/projects/repl")
+    print("lean repl path: ", path)
+
+    proofsearch = ProofSearch(path)
 
     # should return empty sorries and goals
     proofsearch.run_code("import Mathlib.Data.List.Basic\ndef f := 2", verbose=True)
