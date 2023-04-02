@@ -1,9 +1,12 @@
 import requests
+from requests import HTTPError
 from dataclasses import dataclass
 from typing import List
 from tiktoken import get_encoding
 import os
 from pydantic import BaseModel
+import backoff
+import tiktoken
 
 SYSTEM_MESSAGE: str = """\
 You are a pure mathematician who is an expert in the Lean 4 theorem prover. Your job is help your user write Lean proofs.
@@ -79,13 +82,13 @@ Here is the new goal state:
 {PROOF_INSTRUCTION}"""
 
 
-def prove_error_prompt(error, line, col): 
+def prove_error_prompt(error): 
     return f"""\
-There is an error on line {line} col {col}
+Executing this code returns errors:
 ```
 {error}
 ```
-Please describe how you are going to fix the error. Change your code to fix the error, but do not add any new tactic steps.
+Please describe how you are going to fix the error. Modify your code to fix the error, but do not add any new tactic steps.
 """
 
 def sorry_prompt():
@@ -97,9 +100,16 @@ class ChatMessage(BaseModel):
     role: str
     content: str
 
+    def __str__(self): 
+        return f">>>{self.role.upper()}\n" + self.content
+
 class ChatState(BaseModel):
     messages: List[ChatMessage]
 
+    def __str__(self): 
+        return "\n".join(str(x) for x in self.messages)
+
+@backoff.on_exception(backoff.expo, HTTPError)
 def generate_message(chat_state: ChatState, temperature=0, max_tokens=2048, model: str = "gpt-4") -> str:
     headers = {
         "Content-Type": "application/json",
@@ -113,13 +123,23 @@ def generate_message(chat_state: ChatState, temperature=0, max_tokens=2048, mode
         temperature=temperature,
     )
     r = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
-    print(r)
+    if r.status_code != 200: 
+        print(chat_state)
+
+        enc = tiktoken.encoding_for_model(model)
+        num_tokens = len(enc.encode(str(chat_state)))
+        print(f"Chat contains approx {num_tokens} tokens")
+
+        print(r, "retrying")
+
+        raise HTTPError
+
     return r.json()["choices"][0]["message"]["content"]
 
 def complete_chat(chat_state: ChatState, **kwargs): 
     print("waiting on api...")
     response_text = generate_message(chat_state, **kwargs)
-    print(f"GOT RESPONSE:\n{response_text}")
+    print(f"GOT RESPONSE")
     return ChatState(messages=[*chat_state.messages, ChatMessage(role="assistant", content=response_text)])
 
 def generate_message_lean_single(input: str):

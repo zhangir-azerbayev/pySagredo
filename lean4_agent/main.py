@@ -6,6 +6,8 @@ from lean4_agent.gym import ProofSearch
 
 from pydantic import BaseModel
 
+import tiktoken
+
 PATH_TO_REPL = "/home/zhangir/projects/repl"
 
 def code_of_chat_state(state: ChatState): 
@@ -27,12 +29,18 @@ def sorries_goals_errors_of_lean_state(lean_state):
     errors = [m for m in lean_state["messages"] if "unsolved goals" not in m["data"]]
     return sorries, goals, errors
 
+def calc_tokens(chat_state: ChatState, model="gpt-4"): 
+    enc = tiktoken.encoding_for_model(model)
+    num_tokens = len(enc.encode(str(chat_state)))
+    return num_tokens
+
+
 def chat_prove_kernel(lean: ProofSearch, chat_state: ChatState, sorries, goals, errors): 
         if goals and not errors:
             goal_state = "\n\n".join(goals)
             prompt = prove_unsolved_goals_prompt(goal_state)
         elif errors:
-            all_errors = "\n\n".join(errors)
+            all_errors = "\n\n".join([f'line {m["pos"]["line"]} column {m["pos"]["column"]}:\n' + m["data"] for m in errors])
             prompt = prove_error_prompt(all_errors)
         elif sorries:
             prompt = sorry_prompt()
@@ -44,21 +52,21 @@ def chat_prove_kernel(lean: ProofSearch, chat_state: ChatState, sorries, goals, 
         chat_state = complete_chat(chat_state)
 
         code = code_of_chat_state(chat_state).strip()
-
-        print(f"CODE TO EXECUTE:\n{code}")
-
-        lean_state = lean.run_code(code, verbose=True)
+        
+        print("waiting for lean server...")
+        lean_state = lean.run_code(code, verbose=False)
         sorries, goals, errors = sorries_goals_errors_of_lean_state(lean_state)
 
         return chat_state, sorries, goals, errors, lean_state
 
-def f2f_prove(source: str, max_calls=6):
+def f2f_prove(source: str, max_calls=6, max_tokens=8192):
     """
     `source` is an incomplete Lean proof, which consists of imports/namespace, 
     and a theorem statement followed by `:= by`. 
     """
     replpath = os.environ.get("PATH_TO_REPL")
     lean_states = []
+    stop_reason = "max_calls"
 
     chat_state = ChatState(
         messages=[
@@ -79,29 +87,32 @@ def f2f_prove(source: str, max_calls=6):
     
     if sorries or goals or errors:
         for num_calls in range(1, max_calls):
+            num_tokens = calc_tokens(chat_state)
+            if num_tokens > max_tokens:
+                stop_reason = "max_tokens"
+
             del lean 
             lean = ProofSearch(replpath)
 
             chat_state, sorries, goals, errors, lean_state = chat_prove_kernel(lean, chat_state, sorries, goals, errors)
             lean_states.append(lean_state)
             if not (sorries or goals or errors):
+                stop_reason = "success"
                 break
-        
-    summary = {"code": code, "chat": chat_state, "lean_states": lean_states}
-
-    if not sorries and not goals and not errors:
-        summary["success"] = True
-        return summary
     else: 
-        summary["success"] = False
-        return 
+        stop_reason = "success"
+        
+    summary = {"code": code, "chat": chat_state, "lean_states": lean_states, "stop_reason": stop_reason}
+
+    return summary 
 
 def _main():
-    test_case = "tests/List_append_length.lean"
+    test_case = "evals/Topology_homeomorph.lean"
     source = open(test_case).read()
 
     summary = f2f_prove(source)
     print(summary["chat"])
+    print("STOP REASON: ", summary["stop_reason"])
 
 if __name__ == "__main__":
     fire.Fire(_main)
