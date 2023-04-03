@@ -10,7 +10,7 @@ from pydantic import BaseModel
 import tiktoken
 
 def _main():
-    test_case = "evals/Topology_homeomorph.lean"
+    test_case = "evals/List_append_length.lean"
     source = open(test_case).read()
 
     summary = f2f_prove(source)
