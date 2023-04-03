@@ -6,18 +6,20 @@ from pydantic import BaseModel
 
 import tiktoken
 
-def code_of_chat_state(state: ChatState): 
+
+def code_of_chat_state(state: ChatState):
     """
     Extracts contents of last lean code block from raw text
 
     Requires that ChatState.messages[-1] has role "assistant"
     """
-    text = state.messages[-1].content 
+    text = state.messages[-1].content
     left_key = "```lean"
     left_idx = text.rindex(left_key)
     right_idx = text.rindex("```")
-    code = text[left_idx+len(left_key)+1:right_idx] # +1 for the newline
+    code = text[left_idx + len(left_key) + 1 : right_idx]  # +1 for the newline
     return code
+
 
 def sorries_goals_errors_of_lean_state(lean_state):
     sorries = lean_state["sorries"]
@@ -25,35 +27,44 @@ def sorries_goals_errors_of_lean_state(lean_state):
     errors = [m for m in lean_state["messages"] if "unsolved goals" not in m["data"]]
     return sorries, goals, errors
 
-def calc_tokens(chat_state: ChatState, model="gpt-4"): 
+
+def calc_tokens(chat_state: ChatState, model="gpt-4"):
     enc = tiktoken.encoding_for_model(model)
     num_tokens = len(enc.encode(str(chat_state)))
     return num_tokens
 
 
-def chat_prove_kernel(lean: ProofSearch, chat_state: ChatState, sorries, goals, errors): 
-        if goals and not errors:
-            goal_state = "\n\n".join(goals)
-            prompt = prove_unsolved_goals_prompt(goal_state)
-        elif errors:
-            all_errors = "\n\n".join([f'line {m["pos"]["line"]} column {m["pos"]["column"]}:\n' + m["data"] for m in errors])
-            prompt = prove_error_prompt(all_errors)
-        elif sorries:
-            prompt = sorry_prompt()
-        else: 
-            print("warning, `chat_prove_kernel` doing nothing")
-            return chat_state, sorries, goals, errors, None
+def chat_prove_kernel(lean: ProofSearch, chat_state: ChatState, sorries, goals, errors):
+    if goals and not errors:
+        goal_state = "\n\n".join(goals)
+        prompt = prove_unsolved_goals_prompt(goal_state)
+    elif errors:
+        all_errors = "\n\n".join(
+            [
+                f'line {m["pos"]["line"]} column {m["pos"]["column"]}:\n' + m["data"]
+                for m in errors
+            ]
+        )
+        prompt = prove_error_prompt(all_errors)
+    elif sorries:
+        prompt = sorry_prompt()
+    else:
+        print("warning, `chat_prove_kernel` doing nothing")
+        return chat_state, sorries, goals, errors, None
 
-        chat_state = ChatState(messages=[*chat_state.messages, ChatMessage(role="user", content=prompt)])
-        chat_state = complete_chat(chat_state)
+    chat_state = ChatState(
+        messages=[*chat_state.messages, ChatMessage(role="user", content=prompt)]
+    )
+    chat_state = complete_chat(chat_state)
 
-        code = code_of_chat_state(chat_state).strip()
-        
-        print("waiting for lean server...")
-        lean_state = lean.run_code(code, verbose=False)
-        sorries, goals, errors = sorries_goals_errors_of_lean_state(lean_state)
+    code = code_of_chat_state(chat_state).strip()
 
-        return chat_state, sorries, goals, errors, lean_state
+    print("waiting for lean server...")
+    lean_state = lean.run_code(code, verbose=False)
+    sorries, goals, errors = sorries_goals_errors_of_lean_state(lean_state)
+
+    return chat_state, sorries, goals, errors, lean_state
+
 
 def prove_with_initial_prompt(initial_prompt: str, max_calls=6, max_tokens=8192):
     """
@@ -80,29 +91,48 @@ def prove_with_initial_prompt(initial_prompt: str, max_calls=6, max_tokens=8192)
     lean_states.append(lean_state)
 
     sorries, goals, errors = sorries_goals_errors_of_lean_state(lean_state)
-    
+
     if sorries or goals or errors:
         for num_calls in range(1, max_calls):
             num_tokens = calc_tokens(chat_state)
             if num_tokens > max_tokens:
                 stop_reason = "max_tokens"
 
-            del lean 
+            del lean
             lean = ProofSearch(replpath)
 
-            chat_state, sorries, goals, errors, lean_state = chat_prove_kernel(lean, chat_state, sorries, goals, errors)
+            chat_state, sorries, goals, errors, lean_state = chat_prove_kernel(
+                lean, chat_state, sorries, goals, errors
+            )
             lean_states.append(lean_state)
             if not (sorries or goals or errors):
                 stop_reason = "success"
                 break
-    else: 
+    else:
         stop_reason = "success"
-        
-    summary = {"code": code, "chat": chat_state, "lean_states": lean_states, "stop_reason": stop_reason}
+
+    summary = {
+        "code": code,
+        "chat": chat_state,
+        "lean_states": lean_states,
+        "stop_reason": stop_reason,
+    }
     return summary
 
-def f2f_prove(code: str, **kwargs): 
+
+def f2f_prove(code: str, **kwargs):
     return prove_with_initial_prompt(f2f_initial_prompt(code), **kwargs)
 
-def autoformalize_statement_and_proof(nl_statement: str, nl_proof: str, code: str, **kwargs): 
-    return prove_with_initial_prompt(autoformalize_statement_and_proof_initial_prompt(nl_statement, nl_proof, code), **kwargs)
+def autoformalize_proof(nl_statement: str, nl_proof: str, code: str, **kwargs):
+    return prove_with_initial_prompt(
+        autoformalize_proof_initial_prompt(nl_statement, nl_proof, code), 
+        **kwargs
+    )
+
+def autoformalize_statement_and_proof(
+    nl_statement: str, nl_proof: str, code: str, **kwargs
+):
+    return prove_with_initial_prompt(
+        autoformalize_statement_and_proof_initial_prompt(nl_statement, nl_proof, code),
+        **kwargs,
+    )

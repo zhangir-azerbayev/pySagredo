@@ -14,6 +14,7 @@ I want to remind you that we're using Lean 4, not the older Lean 3, and there ha
 - Type constants are now UpperCamelCase, eg `Nat`, `List`.
 - Term constants and variables are now `lowerCamelCase` rather than `snake_case`. For example, we now have `NumberTheory.Divisors.properDivisors instead of `number_theory.divisors.proper_divisors`.
 - Pure functions are now written with the syntax `fun x => f x`. The old `λ x, f x` syntax will not work.
+- We now enter tactic mode using the `by` keyword. The syntax `begin... end` will not work.
 - Instead of being separated by a comma, tactics can be separated by a newline or by a semicolon. For example, we could write
 ```lean
 theorem test (p q : Prop) (hp : p) (hq : q) : p ∧ q ∧ p := by
@@ -63,9 +64,9 @@ def autoformalize_proof_initial_prompt(nl_statement, nl_proof, code):
 I am going to show you a natural language proof of a theorem and a corresponding formal theorem statement in Lean 4. Your job will be to write a formal proof of the formal theorem statement, using the natural language proof as a hint.
 
 Here are the natural language theorem and proof:
-\\begin{theorem}
+\\begin{{theorem}}
     {nl_statement}
-\\end{theorem}
+\\end{{theorem}}
 {nl_proof}
 
 Below is the Lean code I would like you to complete.
@@ -79,9 +80,9 @@ def autoformalize_statement_and_proof_initial_prompt(nl_statement, nl_proof, cod
 I am going to show you a natural language theorem statement and natural language proof of that theorem. Your job will be to formalize the statement of the theorem in Lean 4 and formally prove the statement. 
 
 Here are the natural language theorem and proof:
-\\begin{theorem}
+\\begin{{theorem}}
     {nl_statement}
-\\end{theorem}
+\\end{{theorem}}
 {nl_proof}
 
 Here is the code template for your formalization. 
@@ -139,7 +140,8 @@ def generate_message(chat_state: ChatState, temperature=0, max_tokens=2048, mode
         messages=chat_state.dict()["messages"],
         max_tokens=max_tokens,
         stream=False,
-        temperature=temperature,
+        top_p=0.95,
+        # temperature=temperature,
     )
     r = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
     if r.status_code != 200: 

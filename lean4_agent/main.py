@@ -1,22 +1,27 @@
 import fire
 import os
 import time
+import json
 
 from lean4_agent.util import CONFIG
 from lean4_agent.llm import *
 from lean4_agent.gym import ProofSearch
-from lean4_agent.prove import f2f_prove
+from lean4_agent.prove import f2f_prove, autoformalize_proof
 
 from pydantic import BaseModel
 
 import tiktoken
 
 def _main():
-    test_case = "evals/List_append_length.lean"
-    source = open(test_case).read()
-    
+    test_case = "evals/autoformalize_proof/mathd_algebra_101.json"
+
+    #source = open(test_case).read() 
+    source = json.load(open(test_case))
     start_time = time.time()
-    summary = f2f_prove(source)
+
+    #summary = f2f_prove(source)
+    summary = autoformalize_proof(**source) 
+
     end_time = time.time()
     num_calls = len(summary["chat"].messages)//2
     print(summary["chat"])
