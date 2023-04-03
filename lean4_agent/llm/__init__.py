@@ -49,6 +49,11 @@ PROOF_INSTRUCTION = """\
 1. Please write out a plan for proceeding with the proof. Write your plan in English (with LaTeX).
 2. Please add the next tactic step to the proof. Include the new version of your (possibly incomplete) proof in a lean code block. Make sure the code block is self-contained and runs. Do not add more than one new tactic step."""
 
+AUTOFORMALIZE_PROOF_INSTRUCTION = """\
+1. Please plan out a plan for your formal proof. You can use the natural language proof as a guide, but there is no need to follow it exactly, or at all.
+2. Please add the next tactic step to the proof. Include the new version of your (possibly incomplete) proof in a lean code block. Make sure the code block is self-contained and runs. Do not add more than one new tactic step.\
+"""
+
 def f2f_initial_prompt(code): 
     return f"""\
 I am going to show you an incomplete proof and the accompanying goal state. I will ask you to complete the proof step by step, adding one tactic step in each response. 
@@ -73,7 +78,7 @@ Below is the Lean code I would like you to complete.
 ```lean
 {code}
 ```
-{PROOF_INSTRUCTION}"""
+{AUTOFORMALIZE_PROOF_INSTRUCTION}"""
 
 def autoformalize_statement_and_proof_initial_prompt(nl_statement, nl_proof, code): 
     return f"""\
@@ -89,8 +94,7 @@ Here is the code template for your formalization.
 ```lean
 {code}
 ```
-1. Please write out a plan for the autoformalization. Write your plan in English (with LaTeX).
-2. Autoformalize the statement of the theorem only, i.e, remove the `sorry` in the type signature of the theorem. Do not start proving the theorem yet. Include the new version of your code in a lean code block. Make sure your code is self-contained and runs.
+{AUTOFORMALIZE_PROOF_INSTRUCTION}
 """
 
 def prove_unsolved_goals_prompt(goal_state):
@@ -130,7 +134,7 @@ class ChatState(BaseModel):
         return "\n".join(str(x) for x in self.messages)
 
 @backoff.on_exception(backoff.expo, HTTPError)
-def generate_message(chat_state: ChatState, temperature=0, max_tokens=2048, model: str = "gpt-4") -> str:
+def generate_message(chat_state: ChatState, temperature=0.4, top_p=0.95, max_tokens=2048, model: str = "gpt-4") -> str:
     headers = {
         "Content-Type": "application/json",
         "Authorization": f"Bearer {os.environ.get('OPENAI_API_KEY')}",
@@ -140,8 +144,8 @@ def generate_message(chat_state: ChatState, temperature=0, max_tokens=2048, mode
         messages=chat_state.dict()["messages"],
         max_tokens=max_tokens,
         stream=False,
-        top_p=0.95,
-        # temperature=temperature,
+        top_p=top_p,
+        temperature=temperature,
     )
     r = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
     if r.status_code != 200: 
@@ -165,4 +169,3 @@ def complete_chat(chat_state: ChatState, **kwargs):
 
 def generate_message_lean_single(input: str):
     return generate_message(ChatState(messages=[ChatMessage(role="system", content=SYSTEM_MESSAGE), ChatMessage(role="user", content=input)]))
-
