@@ -71,7 +71,7 @@ def prove_with_initial_prompt(initial_prompt: str, max_calls=6, max_tokens=8192)
     `initial_prompt` should ask the model to generate a response contained within
     a lean code block that ends in `:= by`.
     """
-    replpath = os.environ.get("PATH_TO_REPL")
+    replpath = os.environ.get("PATH_TO_LEAN_REPL")
     lean_states = []
     stop_reason = "max_calls"
 

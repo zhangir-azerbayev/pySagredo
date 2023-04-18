@@ -13,14 +13,16 @@ from pydantic import BaseModel
 import tiktoken
 
 def _main():
+    # test_case = "evals/f2f/List_append_length.lean"
     test_case = "evals/autoformalize_proof/imo_1964_p1_2.json"
 
-    #source = open(test_case).read() 
+    # source = open(test_case).read() 
     source = json.load(open(test_case))
-    start_time = time.time()
 
-    #summary = f2f_prove(source)
-    summary = autoformalize_proof(**source, max_calls=10) 
+    start_time = time.time()
+    
+    # summary = f2f_prove(source, max_calls=10) 
+    summary = autoformalize_proof(**source, max_calls=10)
 
     end_time = time.time()
     num_calls = len(summary["chat"].messages)//2
@@ -29,4 +31,4 @@ def _main():
     print(f"{num_calls} interactions in {end_time-start_time:.2f} seconds")
 
 if __name__ == "__main__":
-    fire.Fire(_main)
+    _main()

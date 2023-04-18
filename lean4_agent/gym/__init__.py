@@ -6,9 +6,12 @@ import os
 
 class ProofSearch:
     def __init__(self, path_to_repl):
+        # debug
+        # print(f"LOOKING FOR REPL IN {path_to_repl}")
         self.proc = pexpect.spawn(
             "lake env lean --run REPL/Main.lean", cwd=path_to_repl, encoding="utf-8"
         )
+        self.proc.debug = True
 
     def run_code(self, code, env=None, verbose=False):
         if env:
@@ -24,6 +27,10 @@ class ProofSearch:
             print(command)
         self.proc.sendline(command)
         self.proc.expect_exact(command + "\r\n")
+
+        # debugging
+        # print(self.proc.before)
+
         self.proc.sendline()
         self.proc.expect_exact("\r\n")
         try:
@@ -39,7 +46,7 @@ class ProofSearch:
 def main():
     """For testing purposes"""
     path = os.environ.get("PATH_TO_LEAN_REPL")
-
+    
     print("lean repl path: ", path)
 
     proofsearch = ProofSearch(path)
