@@ -77,7 +77,7 @@ def sketch_of_code(code: str) -> str:
     sketch = code_of_chat_state(chat_state, lang="")
     return sketch
 
-def prove_prompt(proverstate: ProverState) -> str: 
+def next_tactic_prompt(proverstate: ProverState) -> str: 
     return f"""\
 I am trying to complete this proof in Lean 4: 
 ```lean
@@ -130,17 +130,18 @@ def prover_kernel(proverstate: ProverState, mode: str, verbose=False) -> ProverS
         mode (str): equal to "prove" or "error"
 
     Requires: 
-        if `mode="prover"`, requires `not proverstate.sorries`
+        if `mode="next_tactic"`, requires `not proverstate.sorries`
         if `model="error"`, requires `proverstate.sorries`
     """
-    if mode="prover":
+    if mode="next_tactic":
         assert not proverstate.errors
+        user_prompt = 
     elif model="error": 
         assert proverstate.errors
+        user_prompt = fix_error_prompt(proverstate)
     else: 
         raise ValueError("`mode` not recognized")
 
-    user_prompt = fix_error_prompt(proverstate)
 
     chat_state = ChatState(
         messages=[
@@ -184,7 +185,27 @@ def prover_kernel(proverstate: ProverState, mode: str, verbose=False) -> ProverS
     return new_proverstate, chat_state
 
 def prover(proverstate: ProverState, max_api_calls=10, verbose=False) -> Dict: 
-    pass
+    proverstates = [proverstate]
+    chat_states = []
+    
+    stop_reason = "max_calls"
+    for _ in range(max_api_calls): 
+        if proverstate.errors: 
+            proverstate, chat_state = prover_kernel(proverstate, mode="error", verbose=verbose)
+        else: 
+            proverstate, chat_state = prover_kernel(proverstate, mode="next_tactic", verbose=verbose)
+
+        proverstates.append(proverstate)
+        chat_states.append(chat_state)
+
+        if not proverstate.goals and not proverstate.goals: 
+            stop_reason = "done"
+            break
+
+    return {
+            "proverstates": proverstates, 
+            "chat_states": chat_states,
+            }
 
 def f2f_prove(code: str, **kwargs) -> Dict: 
     pass
