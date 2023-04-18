@@ -136,3 +136,36 @@ def autoformalize_statement_and_proof(
         autoformalize_statement_and_proof_initial_prompt(nl_statement, nl_proof, code),
         **kwargs,
     )
+
+
+from capabilities import Capability
+
+synth = Capability("multi/structured")
+
+TOY_PROMPT: str = """\
+    I am going to show you a natural language proof of a theorem and a corresponding formal theorem statement in Lean 4. Your job will be to write a formal proof of the formal theorem statement, using the natural language proof as a hint.
+
+Here are the natural language theorem and proof:
+\\begin\{theorem\}
+    Show that for any natural number $n$, $7$ does not divide $2^n + 1$.
+\\end\{theorem\}
+If $2^n+1$ is congruent to 0 mod 7, then $2^n$ must be congruent to 6 mod 7, but this is not possible due to how $2^n$ mod 7 cycles. Therefore, there is no solution.
+
+Plan out a plan for your formal proof. You can use the natural language proof as a guide, but there is no need to follow it exactly, or at all. Return this as a list of strings called `proof_steps`, where each proof step is a complete sentence and each proof step logically follows from the previous one.
+"""
+
+from pydantic import BaseModel
+
+class Metadata(BaseModel):
+    theorem: str
+
+class InformalProof(BaseModel):
+    proof_steps: List[str]
+
+inp = Metadata(theorem="theorem imo_1964_p1_2 (n : ℕ) : ¬ 7 ∣ (2^n + 1)")
+
+instructions = TOY_PROMPT
+
+
+if __name__ == "__main__":
+    print(synth(Metadata, InformalProof, instructions, inp))

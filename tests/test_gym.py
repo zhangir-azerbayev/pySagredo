@@ -10,7 +10,7 @@ class TestGym(unittest.TestCase):
         proofsearch = ProofSearch(path_to_repl=path)
 
         # should return empty sorries and goals
-        out = proofsearch.run_code("import Mathlib.Data.List.Basic\ndef f := 2", verbose=True)
+        out = proofsearch.run_code("def f := 2", verbose=True)
         self.assertEqual(out["sorries"], [])
         self.assertEqual(out["messages"], [])
 

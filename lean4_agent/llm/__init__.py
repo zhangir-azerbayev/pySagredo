@@ -15,18 +15,12 @@ I want to remind you that we're using Lean 4, not the older Lean 3, and there ha
 - Term constants and variables are now `lowerCamelCase` rather than `snake_case`. For example, we now have `NumberTheory.Divisors.properDivisors instead of `number_theory.divisors.proper_divisors`.
 - Pure functions are now written with the syntax `fun x => f x`. The old `λ x, f x` syntax will not work.
 - We now enter tactic mode using the `by` keyword. The syntax `begin... end` will not work.
-- Instead of being separated by a comma, tactics can be separated by a newline or by a semicolon. For example, we could write
+- Instead of being separated by a comma, tactics are separated by a newline. For example, we could write.
 ```lean
 theorem test (p q : Prop) (hp : p) (hq : q) : p ∧ q ∧ p := by
   apply And.intro hp
   exact And.intro hq hp
 ```
-or
-```lean
-theorem test (p q : Prop) (hp : p) (hq : q) : p ∧ q ∧ p := by
-  apply And.intro hp; exact And.intro hq hp
-```
-- Indentation is significant.
 - In the `rw` tactic you must enclose the lemmas in square brackets, even if there is just one. For example `rw h1` is now `rw [h1]`.
 - The `induction` tactic now uses a structured format, like pattern matching. For example, in Lean 4 we can write
 ```lean
@@ -43,6 +37,22 @@ example (p q : Prop) : p ∨ q → q ∨ p := by
   cases h with
   | inl hp => apply Or.inr; exact hp
   | inr hq => apply Or.inl; exact hq\
+
+The following is a description of some commonly used tactics. Of course, feel free to use tactics outside of this list. 
+- `abel`: reduces expressions in additive, commutative monoids/groups to a normal form. 
+- `apply`: the tactic `apply e` matches the current goal against the conclusion of `e`. If it succeeds, the new goal states are the premises of `e`.
+- `continuity`: attempts to prove goals of the form `continuous f` by applying lemmas tagged with the `continuity` attribute. 
+- `contrapose`: transforms the goal into its contrapositive.
+- `convert`: The tactic `convert e` is similar to `refine e`, except the type of `e` is not required to exactly match the goal. Any rewrites required to transform `e` into the goal become the new goal state.
+- `group`: normalizes expressions in multiplicative groups, without assuming commutativity.
+- `have`: `have h : t := p` adds the hypothesis `h : t` to the current goal. If you want to prove `h` in tactic mode, use the syntax `have h : t := by --tactic proof goes here`. 
+- `linarith`: proves any goal that consists of linear arithemtic.
+- `nlinarith`: version of `linarith` that can tolerate some nonlinearity.
+- `norm_num`: normalizes numerical expressions.
+- `polyrith`: proves polynomial equalities.
+- `push_neg`: pushes negations through quantifiers.
+- `simp`: uses lemmas and hypotheses tagged with the `simp` attribute to simplify the goal. Use `simp [h1, h2,..., hn]` to add `h1, h2,..., hn` to the list of lemmas used by simp.
+- `ring`: tactic for solving goals involving expressions in commutative rings and normalizing expressions in commutative rings.
 """
 
 PROOF_INSTRUCTION = """\
@@ -51,7 +61,7 @@ PROOF_INSTRUCTION = """\
 
 AUTOFORMALIZE_PROOF_INSTRUCTION = """\
 1. Please plan out a plan for your formal proof. You can use the natural language proof as a guide, but there is no need to follow it exactly, or at all.
-2. Please add the next tactic step to the proof. Include the new version of your (possibly incomplete) proof in a lean code block. Make sure the code block is self-contained and runs. Do not add more than one new tactic step.\
+2. Please add the next tactic step to the proof. Include the new version of your (possibly incomplete) proof in a lean code block. Make sure the code block is self-contained and runs. Do not add more than one new tactic step. If you introduce a new lemma in a `have` statement, only supply one tactic step in the proof of the lemma.\
 """
 
 def f2f_initial_prompt(code): 

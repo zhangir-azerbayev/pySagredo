@@ -13,14 +13,14 @@ from pydantic import BaseModel
 import tiktoken
 
 def _main():
-    test_case = "evals/autoformalize_proof/mathd_algebra_101.json"
+    test_case = "evals/autoformalize_proof/imo_1964_p1_2.json"
 
     #source = open(test_case).read() 
     source = json.load(open(test_case))
     start_time = time.time()
 
     #summary = f2f_prove(source)
-    summary = autoformalize_proof(**source) 
+    summary = autoformalize_proof(**source, max_calls=10) 
 
     end_time = time.time()
     num_calls = len(summary["chat"].messages)//2
