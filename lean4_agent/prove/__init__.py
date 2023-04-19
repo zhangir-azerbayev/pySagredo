@@ -111,15 +111,16 @@ def fix_error_prompt(proverstate: ProverState) -> str:
 ```
 
 I am following this proof sketch: 
-
+```latex
 {proverstate.sketch}
+```
 
 This proof returns the following errors. 
 ```
 {errors_string}
 ```
 
-Please describe how you are going to fix the error. Modify the code to fix the error, but do not add any additional tactic steps. 
+Please describe how you are going to fix the error. Modify the code to fix the error, but do not add any additional tactic steps.
 
 Formatting instructions: Write the answer in a ```lean code block```. Do not include any sorries in your modified code. Rather, finish writing where you want me to see the goal state."""
 
