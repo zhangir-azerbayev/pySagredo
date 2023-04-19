@@ -31,7 +31,7 @@ def _main():
 
     end_time = time.time()
 
-    print("STOP REASON: ", summary["stop_reason"])
+    print("\nSUMMARY\nSTOP REASON: ", summary["stop_reason"])
     print(f'{summary["num_api_calls"]} interactions in {end_time-start_time:.2f} seconds')
 
     #code.interact(local=locals())
