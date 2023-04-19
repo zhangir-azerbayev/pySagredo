@@ -209,7 +209,7 @@ def prover(proverstate: ProverState, max_api_calls=10, verbose=False) -> Dict:
         proverstates.append(proverstate)
         chat_states.append(chat_state)
 
-        if not proverstate.goals and not proverstate.goals:
+        if not proverstate.errors and not proverstate.goals:
             stop_reason = "done"
             break
 

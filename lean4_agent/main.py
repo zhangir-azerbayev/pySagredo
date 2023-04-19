@@ -12,6 +12,8 @@ from pydantic import BaseModel
 
 import tiktoken
 
+import code 
+
 def _main():
     """
     Only for debugging/testing purposes
@@ -32,9 +34,11 @@ def _main():
     print("STOP REASON: ", summary["stop_reason"])
     print(f'{summary["num_api_calls"]} interactions in {end_time-start_time:.2f} seconds')
 
-    code = summary["proverstates"][-1].code
+    #code.interact(local=locals())
 
-    print(code)
+    program = summary["proverstates"][-1].code
+
+    print(program)
 
 if __name__ == "__main__":
     _main()
