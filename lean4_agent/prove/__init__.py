@@ -41,6 +41,7 @@ def sorries_goals_errors_of_lean_state(lean_state):
 
 
 def sketch_prompt(code: str) -> str:
+    # import that there is a blank line after `by`
     return f"""I am trying to write a proof of the following theorem in Lean 4: 
 ```lean
 {code}
@@ -104,6 +105,7 @@ def fix_error_prompt(proverstate: ProverState) -> str:
             ]
 
     errors_string = "\n\n".join(error_strings)
+    # the newline after the `by` is important
     return f"""The following is a Lean 4 proof I am working on: 
 
 ```lean
@@ -168,12 +170,12 @@ def prover_kernel(proverstate: ProverState, mode: str, verbose=False) -> ProverS
     replpath = os.environ.get("PATH_TO_LEAN_REPL")
     lean = ProofSearch(replpath)
 
-    lean_state = lean.run_code(new_code, verbose=verbose)
+    lean_state = lean.run_code(new_code.strip() + "\n", verbose=verbose)
 
     sorries, goals, errors = sorries_goals_errors_of_lean_state(lean_state)
 
-    if sorries:
-        raise ValueError("haven't implemented coping with sorries yet")
+    # if sorries:
+        # raise ValueError("haven't implemented coping with sorries yet")
 
     new_proverstate = ProverState(
         sketch=proverstate.sketch,
@@ -224,7 +226,7 @@ def prover(proverstate: ProverState, max_api_calls=10, verbose=False) -> Dict:
 def autoformalize_sketch(code: str, sketch: str, max_api_calls=10, verbose=False) -> Dict:
     replpath = os.environ.get("PATH_TO_LEAN_REPL")
     lean = ProofSearch(replpath)
-    lean_state = lean.run_code(code, verbose=verbose)
+    lean_state = lean.run_code(code.strip() + "\n", verbose=verbose)
     sorries, goals, errors = sorries_goals_errors_of_lean_state(lean_state)
 
     proverstate = ProverState(
