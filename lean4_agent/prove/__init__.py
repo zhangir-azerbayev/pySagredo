@@ -33,20 +33,21 @@ def code_of_chat_state(state: ChatState, lang="lean"):
     return code.strip()
 
 
-def sorries_goals_errors_of_lean_state(lean_state):
-    sorries = lean_state["sorries"]
+def goals_errors_of_lean_state(lean_state):
     goals = [m["data"] for m in lean_state["messages"] if "unsolved goals" in m["data"]]
-    errors = [m for m in lean_state["messages"] if "unsolved goals" not in m["data"]]
-    return sorries, goals, errors
+    goals +=[m["goal"] for m in lean_state["sorries"]] 
+    errors = [m for m in lean_state["messages"] if "unsolved goals" not in m["data"]
+            and m["severity"]=="error"]
+    return goals, errors
 
 
 def sketch_prompt(code: str) -> str:
     # import that there is a blank line after `by`
-    return f"""I am trying to write a proof of the following theorem in Lean 4: 
+    return f"""I am trying to write a formal proof of the following theorem in Lean 4: 
 ```lean
 {code}
 ```
-I am going to ask you to complete this formal proof. But first, plan out your formal proof in natural language and LaTeX. 
+I am going to ask you to finish this Lean proof. But first, plan out your proof in natural language and LaTeX. 
 
 Formatting instructions: enclose your plan in a ```latex code block```"""
 
@@ -85,17 +86,17 @@ def next_tactic_prompt(proverstate: ProverState) -> str:
 ```
 
 I plan to proceed according to this natural language proof sketch: 
-
+```latex
 {proverstate.sketch}
-
-The following are the open goals of my code: 
+```
+The following are the open goals in my Lean code: 
 ```
 {goals_string}
 ```
 1. Please write out a plan for completing the formal proof. Write your plan in English (with LaTeX).
-2. Please add the next tactic step to the proof. 
+2. Please add the next tactic step to the proof. Do not add more than one new tactic step
 
-Formatting instructions: include the new version of your (possibly incomplete) proof in a lean code block. Make sure the code block is self-contained and runs. Do not add more than one new tactic step. Do not write `sorry` in your code. Instead, stop writing where you think it will be helpful for me to see the goal state."""
+Formatting instructions: include the new version of your (possibly incomplete) proof in a ```lean code block```. Make sure the code block is self-contained and runs."""
 
 
 def fix_error_prompt(proverstate: ProverState) -> str:
@@ -111,20 +112,18 @@ def fix_error_prompt(proverstate: ProverState) -> str:
 ```lean
 {proverstate.code}
 ```
-
+This proof returns the following errors. 
+```
+{errors_string}
+```
 I am following this proof sketch: 
 ```latex
 {proverstate.sketch}
 ```
 
-This proof returns the following errors. 
-```
-{errors_string}
-```
+Please describe how you are going to fix the errors. Modify the code to fix the error, but do not add any additional tactic steps.
 
-Please describe how you are going to fix the error. Modify the code to fix the error, but do not add any additional tactic steps.
-
-Formatting instructions: Write the answer in a ```lean code block```. Do not include any sorries in your modified code. Rather, finish writing where you want me to see the goal state."""
+Formatting instructions: Write the answer in a ```lean code block```."""
 
 
 def prover_kernel(proverstate: ProverState, mode: str, verbose=False) -> ProverState:
@@ -172,7 +171,7 @@ def prover_kernel(proverstate: ProverState, mode: str, verbose=False) -> ProverS
 
     lean_state = lean.run_code(new_code.strip() + "\n", verbose=verbose)
 
-    sorries, goals, errors = sorries_goals_errors_of_lean_state(lean_state)
+    goals, errors = goals_errors_of_lean_state(lean_state)
 
     # if sorries:
         # raise ValueError("haven't implemented coping with sorries yet")
@@ -227,7 +226,7 @@ def autoformalize_sketch(code: str, sketch: str, max_api_calls=10, verbose=False
     replpath = os.environ.get("PATH_TO_LEAN_REPL")
     lean = ProofSearch(replpath)
     lean_state = lean.run_code(code.strip() + "\n", verbose=verbose)
-    sorries, goals, errors = sorries_goals_errors_of_lean_state(lean_state)
+    goals, errors = goals_errors_of_lean_state(lean_state)
 
     proverstate = ProverState(
             sketch=sketch,
