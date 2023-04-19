@@ -6,29 +6,52 @@ import json
 from lean4_agent.util import CONFIG
 from lean4_agent.llm import *
 from lean4_agent.gym import ProofSearch
-from lean4_agent.prove import f2f_prove, autoformalize_proof
+from lean4_agent.prove import f2f_prove, autoformalize_sketch
 
 from pydantic import BaseModel
 
 import tiktoken
 
-def _main():
-    # test_case = "evals/f2f/List_append_length.lean"
-    test_case = "evals/autoformalize_proof/imo_1964_p1_2.json"
+import code 
 
-    # source = open(test_case).read() 
-    source = json.load(open(test_case))
+import argparse
+
+def _main():
+    """
+    Only for debugging/testing purposes
+    """
+
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('-a', '--autoformalize', action='store_true')
+    parser.add_argument('-p', '--prove', action='store_true')
+    parser.add_argument('-i', '--input', type=str, help="where to look for input file")
+    args = parser.parse_args()
+
+    path = args.input
 
     start_time = time.time()
+
+    if args.prove: 
+        source = open(path).read() 
+        summary = f2f_prove(source, max_api_calls=10, verbose=True) 
     
-    # summary = f2f_prove(source, max_calls=10) 
-    summary = autoformalize_proof(**source, max_calls=10)
+    if args.autoformalize: 
+        source = json.load(open(path))
+        sketch = source["sketch"]
+        code = source["code"]
+        summary = autoformalize_sketch(code, sketch, max_api_calls=10, verbose=True)
 
     end_time = time.time()
-    num_calls = len(summary["chat"].messages)//2
-    print(summary["chat"])
-    print("STOP REASON: ", summary["stop_reason"])
-    print(f"{num_calls} interactions in {end_time-start_time:.2f} seconds")
+
+    print("\nSUMMARY\nSTOP REASON: ", summary["stop_reason"])
+    print(f'{summary["num_api_calls"]} interactions in {end_time-start_time:.2f} seconds')
+
+    #code.interact(local=locals())
+
+    program = summary["proverstates"][-1].code
+
+    print(program)
 
 if __name__ == "__main__":
     _main()

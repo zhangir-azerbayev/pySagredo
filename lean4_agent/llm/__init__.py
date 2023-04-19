@@ -115,16 +115,6 @@ Here is the new goal state:
 ```
 {PROOF_INSTRUCTION}"""
 
-
-def prove_error_prompt(error): 
-    return f"""\
-Executing this code returns errors:
-```
-{error}
-```
-Please describe how you are going to fix the error. Modify your code to fix the error, but do not add any new tactic steps.
-"""
-
 def sorry_prompt():
     return """\
 There is a sorry in your code. Please do not write any code that contains sorries. Instead, finish typing at the location where you want to see the goal state. Remove the sorry, but do not add any new tactic steps.\
