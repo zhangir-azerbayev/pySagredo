@@ -27,8 +27,14 @@ def _main():
     summary = f2f_prove(source, max_api_calls=10, verbose=True) 
     # summary = autoformalize_sketch(**source, max_calls=10)
 
+    end_time = time.time()
+
     print("STOP REASON: ", summary["stop_reason"])
     print(f'{summary["num_api_calls"]} interactions in {end_time-start_time:.2f} seconds')
+
+    code = summary["proverstates"][-1].code
+
+    print(code)
 
 if __name__ == "__main__":
     _main()

@@ -14,7 +14,7 @@ class ProverState:
     sketch: str
     code: str
     goals: List[str]
-    errors: List[str]
+    errors: List[Dict]
 
 
 def code_of_chat_state(state: ChatState, lang="lean"):
@@ -30,7 +30,7 @@ def code_of_chat_state(state: ChatState, lang="lean"):
     left_idx = text.rindex(left_key)
     right_idx = text.rindex("```")
     code = text[left_idx + len(left_key) + 1 : right_idx]  # +1 for the newline
-    return code
+    return code.strip()
 
 
 def sorries_goals_errors_of_lean_state(lean_state):
@@ -47,7 +47,7 @@ def sketch_prompt(code: str) -> str:
 ```
 I am going to ask you to complete this formal proof. But first, plan out your formal proof in natural language and LaTeX. 
 
-Formatting instructions: enclose your plan in a latex code block"""
+Formatting instructions: enclose your plan in a ```latex code block```"""
 
 
 def sketch_of_code(code: str, verbose=False) -> str:
@@ -72,12 +72,12 @@ def sketch_of_code(code: str, verbose=False) -> str:
     if verbose: 
         print(chat_state)
 
-    sketch = code_of_chat_state(chat_state, lang="")
+    sketch = code_of_chat_state(chat_state, lang="latex")
     return sketch
 
 
 def next_tactic_prompt(proverstate: ProverState) -> str:
-    goals_string = "\n\n".join([x.text for x in proverstate.goals])
+    goals_string = "\n\n".join(proverstate.goals)
     return f"""I am trying to complete this proof in Lean 4: 
 ```lean
 {proverstate.code}
@@ -98,7 +98,12 @@ Formatting instructions: include the new version of your (possibly incomplete) p
 
 
 def fix_error_prompt(proverstate: ProverState) -> str:
-    errors_string = "\n\n".join([x.text for x in proverstate.errors])
+    error_strings = [
+            f'line {x["pos"]["line"]} col {x["pos"]["column"]}:\n{x["data"]}'
+            for x in proverstate.errors
+            ]
+
+    errors_string = "\n\n".join(error_strings)
     return f"""The following is a Lean 4 proof I am working on: 
 
 ```lean
@@ -116,7 +121,7 @@ This proof returns the following errors.
 
 Please describe how you are going to fix the error. Modify the code to fix the error, but do not add any additional tactic steps. 
 
-Formatting instructions: Write the answer in a lean code block. Do not include any sorries in your modified code. Rather, finish writing where you want me to see the goal state."""
+Formatting instructions: Write the answer in a ```lean code block```. Do not include any sorries in your modified code. Rather, finish writing where you want me to see the goal state."""
 
 
 def prover_kernel(proverstate: ProverState, mode: str, verbose=False) -> ProverState:
@@ -135,7 +140,7 @@ def prover_kernel(proverstate: ProverState, mode: str, verbose=False) -> ProverS
     if mode == "next_tactic":
         assert not proverstate.errors
         user_prompt = next_tactic_prompt(proverstate)
-    elif model == "error":
+    elif mode == "error":
         assert proverstate.errors
         user_prompt = fix_error_prompt(proverstate)
     else:
