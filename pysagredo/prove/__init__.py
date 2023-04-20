@@ -1,6 +1,6 @@
-from lean4_agent.util import CONFIG
-from lean4_agent.llm import *
-from lean4_agent.gym import ProofSearch
+from pysagredo.util import CONFIG
+from pysagredo.llm import *
+from pysagredo.gym import ProofSearch
 
 from dataclasses import dataclass
 from typing import List, Dict

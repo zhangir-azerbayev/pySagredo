@@ -1,5 +1,5 @@
 import unittest
-from lean4_agent.gym import ProofSearch
+from pysagredo.gym import ProofSearch
 import os
 
 

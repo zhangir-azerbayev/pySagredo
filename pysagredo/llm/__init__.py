@@ -38,7 +38,7 @@ example (p q : Prop) : p ∨ q → q ∨ p := by
   | inl hp => apply Or.inr; exact hp
   | inr hq => apply Or.inl; exact hq\
 
-The following is a description of some commonly used tactics. Of course, feel free to use tactics outside of this list. 
+The following is a description of some commonly used tactics. Of course, feel free to use tactics outside of this list. Remember that it is good style to use high-level automations like `simp` and `ring` instead of manually performing low-level manipulations. 
 - `abel`: reduces expressions in additive, commutative monoids/groups to a normal form. 
 - `apply`: the tactic `apply e` matches the current goal against the conclusion of `e`. If it succeeds, the new goal states are the premises of `e`.
 - `continuity`: attempts to prove goals of the form `continuous f` by applying lemmas tagged with the `continuity` attribute. 
