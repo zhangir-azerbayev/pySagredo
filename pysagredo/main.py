@@ -3,10 +3,10 @@ import os
 import time
 import json
 
-from lean4_agent.util import CONFIG
-from lean4_agent.llm import *
-from lean4_agent.gym import ProofSearch
-from lean4_agent.prove import f2f_prove, autoformalize_sketch
+from pysagredo.util import CONFIG
+from pysagredo.llm import *
+from pysagredo.gym import ProofSearch
+from pysagredo.prove import f2f_prove, autoformalize_sketch
 
 from pydantic import BaseModel
 

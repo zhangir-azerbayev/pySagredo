@@ -3,7 +3,7 @@ requires = ["setuptools==63.4.1"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "lean4_agent"
+name = "pysagredo"
 version = "0.0.1"
 authors = [
   { name="Zhangir Azerbayev", email="zhangir.azerbayev@yale.edu" },
