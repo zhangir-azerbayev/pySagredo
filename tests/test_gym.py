@@ -5,7 +5,11 @@ import os
 
 class TestGym(unittest.TestCase):
     def test_run_code(self): 
-        path = os.environ.get("PATH_TO_LEAN_REPL")
+        if "PATH_TO_LEAN_REPL" in os.environ:
+            path = os.environ.get("PATH_TO_LEAN_REPL")
+        else: 
+            raise EnvironmentError("no PATH_TO_LEAN_REPL")
+
         print(f"path to repl: {path}")
         proofsearch = ProofSearch(path_to_repl=path)
 
