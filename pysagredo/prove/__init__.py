@@ -2,7 +2,7 @@ from pysagredo.util import CONFIG
 from pysagredo.llm import *
 from pysagredo.gym import ProofSearch
 
-from dataclasses import dataclass
+from dataclasses import dataclass, asdict
 from typing import List, Dict
 
 from pydantic import BaseModel
@@ -15,6 +15,13 @@ class ProverState:
     code: str
     goals: List[str]
     errors: List[Dict]
+
+    def __str__(self):
+        str_repr = "\n".join([
+            f">>>{key.upper()}" + ">"*30 + f"\n{item}"  
+            for key, item in asdict(self).items()
+            ])
+        return f"ProverState:\n{str_repr}"
 
 
 def code_of_chat_state(state: ChatState, lang="lean"):
@@ -42,8 +49,8 @@ def goals_errors_of_lean_state(lean_state):
 
 
 def sketch_prompt(code: str) -> str:
-    # import that there is a blank line after `by`
-    return f"""I am trying to write a formal proof of the following theorem in Lean 4: 
+    return \
+f"""I am trying to write a formal proof of the following theorem in Lean 4: 
 ```lean
 {code}
 ```
@@ -85,15 +92,15 @@ def next_tactic_prompt(proverstate: ProverState) -> str:
 {proverstate.code}
 ```
 
-I plan to proceed according to this natural language proof sketch: 
+I am following this natural language proof sketch: 
 ```latex
 {proverstate.sketch}
 ```
-The following are the open goals in my Lean code: 
+These are the open goals in my Lean code: 
 ```
 {goals_string}
 ```
-1. Please write out a plan for completing the formal proof. Write your plan in English (with LaTeX).
+1. Please write out a plan for completing the formal proof. Write your plan in English (with LaTeX). The above proof sketch may be helpful, but you do not have to follow it exactly.
 2. Please add the next tactic step to the proof. Do not add more than one new tactic step
 
 Formatting instructions: include the new version of your (possibly incomplete) proof in a ```lean code block```. Make sure the code block is self-contained and runs."""
@@ -158,23 +165,23 @@ def prover_kernel(proverstate: ProverState, mode: str, verbose=False) -> ProverS
     chat_state = complete_chat(chat_state)
 
     if verbose:
-        print(f">>>{mode} MODE")
-        print(">>>USER")
+        print(f">>>{mode} MODE" + ">"*30)
+        print(">>>USER" + ">"*30)
         print(chat_state.messages[-2].content)
-        print(">>>ASSISTANT")
+        print(">>>ASSISTANT" + ">"*30)
         print(chat_state.messages[-1].content)
 
     new_code = code_of_chat_state(chat_state).strip()
 
-    replpath = os.environ.get("PATH_TO_LEAN_REPL")
+    if "PATH_TO_LEAN_REPL" in os.environ: 
+        replpath = os.environ.get("PATH_TO_LEAN_REPL")
+    else: 
+        raise EnvironmentError("no PATH_TO_LEAN_REPL")
     lean = ProofSearch(replpath)
 
     lean_state = lean.run_code(new_code.strip() + "\n", verbose=verbose)
 
     goals, errors = goals_errors_of_lean_state(lean_state)
-
-    # if sorries:
-        # raise ValueError("haven't implemented coping with sorries yet")
 
     new_proverstate = ProverState(
         sketch=proverstate.sketch,
