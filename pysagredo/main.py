@@ -1,5 +1,6 @@
 import fire
 import os
+import sys
 import time
 import json
 
@@ -15,6 +16,15 @@ import tiktoken
 import code 
 
 import argparse
+
+def test_proofsearch(source): 
+    print("testing repl...")
+    path = os.environ["PATH_TO_LEAN_REPL"]
+    print(f"path to repl: {path}")
+    proofsearch = ProofSearch(path_to_repl=path)
+    out = proofsearch.run_code(source, verbose=True)
+    print(out)
+    print("repl worked...")
 
 def _main():
     """
@@ -34,10 +44,12 @@ def _main():
 
     if args.prove: 
         source = open(path).read() 
+        test_proofsearch(source)
         summary = f2f_prove(source, max_api_calls=10, verbose=True) 
     
     if args.autoformalize: 
         source = json.load(open(path))
+        test_proofsearch(source)
         sketch = source["sketch"]
         code = source["code"]
         summary = autoformalize_sketch(code, sketch, max_api_calls=10, verbose=True)

@@ -179,7 +179,7 @@ def prover_kernel(proverstate: ProverState, mode: str, verbose=False) -> ProverS
         raise EnvironmentError("no PATH_TO_LEAN_REPL")
     lean = ProofSearch(replpath)
 
-    lean_state = lean.run_code(new_code.strip() + "\n", verbose=verbose)
+    lean_state = lean.run_code(new_code.strip(), verbose=verbose)
 
     goals, errors = goals_errors_of_lean_state(lean_state)
 
