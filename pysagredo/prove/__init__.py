@@ -135,7 +135,7 @@ Formatting instructions: Write the answer in a ```lean code block```."""
 
 def prover_kernel(proverstate: ProverState, mode: str, verbose=False) -> ProverState:
     """
-    Takes a ProverState with proverstate.goals nonempty, and prompts a language model
+    Takes a ProverState with proverstate.goals or proverstate.errors nonempty, and prompts a language model
     to fix the error.
 
     Args:
