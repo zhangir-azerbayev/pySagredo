@@ -33,3 +33,6 @@ class TestGym(unittest.TestCase):
         print(out)
         self.assertTrue(all(m["severity"]!="error" for m in out["messages"]))
 
+if __name__=="__main__": 
+    unittest.main()
+
