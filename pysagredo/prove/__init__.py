@@ -108,7 +108,7 @@ Formatting instructions: include the new version of your (possibly incomplete) p
 
 def fix_error_prompt(proverstate: ProverState) -> str:
     error_strings = [
-            f'line {x["pos"]["line"]} col {x["pos"]["column"]}:\n{proverstate.code.split("\n")[x["pos"]["line"]-1]}\n{x["data"]}'
+            f'line {x["pos"]["line"]} col {x["pos"]["column"]}:\n{x["data"]}'
             for x in proverstate.errors
             ]
 
