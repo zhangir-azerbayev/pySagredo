@@ -2,7 +2,6 @@ import unittest
 from pysagredo.gym import ProofSearch
 import os
 
-
 class TestGym(unittest.TestCase):
     def test_run_code(self): 
         if "PATH_TO_LEAN_REPL" in os.environ:
@@ -32,6 +31,10 @@ class TestGym(unittest.TestCase):
         out = proofsearch.run_code("#check (rfl: f = 37)", env=env, verbose=True)
         print(out)
         self.assertTrue(all(m["severity"]!="error" for m in out["messages"]))
+
+        # long input 
+        out = proofsearch.run_code("-- "+"a"*2048, verbose=True)
+        self.assertEqual(out["messages"], [])
 
 if __name__=="__main__": 
     unittest.main()
